@@ -93,7 +93,7 @@ export function WebFooter() {
 export function WebAction({ label, onPress, secondary = false }: { label: string; onPress: () => void; secondary?: boolean }) {
   const { colors } = useAppearance();
   return <Pressable accessibilityRole="button" onPress={onPress} style={{
-    paddingHorizontal: 22, paddingVertical: 14, alignSelf: 'flex-start', borderRadius: 7,
+    paddingHorizontal: 22, paddingVertical: 14, borderRadius: 7,
     backgroundColor: secondary ? colors.surface : '#173B63',
     borderWidth: secondary ? 1 : 0, borderColor: colors.line,
   }}><Txt size={14} weight="700" style={{ color: secondary ? colors.text : '#FFFFFF' }}>{label}</Txt></Pressable>;
