@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { ClipboardCheck, Building2, FileText, Flag, LogOut, Moon, RefreshCcw, Sun, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -18,7 +18,9 @@ type Organization = {
   status: string; created_at: string;
 };
 type Update = { id: string; campaign_id: string; body: string; status: string; created_at: string };
+type ReviewEvent = { id: string; decision: string; notes: string | null; created_at: string };
 type Section = 'campaigns' | 'organizations' | 'updates' | 'reports';
+type CampaignFilter = 'submitted' | 'all' | 'draft' | 'needs_info' | 'approved' | 'rejected';
 const cash = (value: number) => 'ETB ' + Math.round(Number(value)).toLocaleString('en-US');
 const date = (value: string) => new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -33,8 +35,11 @@ export default function Dashboard() {
   const [updates, setUpdates] = useState<Update[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [selected, setSelected] = useState<Campaign | null>(null);
+  const [search, setSearch] = useState('');
+  const [campaignFilter, setCampaignFilter] = useState<CampaignFilter>('submitted');
   const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [photos, setPhotos] = useState<CampaignPhoto[]>([]);
+  const [reviewHistory, setReviewHistory] = useState<ReviewEvent[]>([]);
   const [notes, setNotes] = useState('');
   const [reviewed, setReviewed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -46,8 +51,8 @@ export default function Dashboard() {
   useEffect(() => {
     const saved = localStorage.getItem('tesfa-admin-theme');
     const next = saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    setDark(next);
     document.body.dataset.theme = next ? 'dark' : 'light';
+    void Promise.resolve().then(() => setDark(next));
     supabase.auth.getUser().then(({ data }) => { setUser(data.user); setReady(true); });
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
@@ -81,18 +86,20 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    if (!user) { setStaff(false); setChecking(false); return; }
     let active = true;
-    setChecking(true);
-    supabase.from('staff_members').select('role').eq('user_id', user.id).maybeSingle()
-      .then(async ({ data, error }) => {
-        if (!active) return;
-        setStaff(!!data && !error);
-        setChecking(false);
-        if (data && !error) await refresh();
-      });
+    const checkAccess = async () => {
+      if (!active) return;
+      if (!user) { setStaff(false); setChecking(false); return; }
+      setChecking(true);
+      const { data, error } = await supabase.from('staff_members').select('role').eq('user_id', user.id).maybeSingle();
+      if (!active) return;
+      setStaff(!!data && !error);
+      setChecking(false);
+      if (data && !error) await refresh();
+    };
+    void Promise.resolve().then(checkAccess);
     return () => { active = false; };
-  }, [user?.id, refresh, user]);
+  }, [user, refresh]);
 
   async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -103,15 +110,18 @@ export default function Dashboard() {
     if (error) setMessage(error.message);
   }
   async function openCampaign(item: Campaign) {
-    setSelected(item); setReviewed(false); setNotes(''); setEvidence([]); setPhotos([]); setMessage('');
-    const [response, media] = await Promise.all([
+    setSelected(item); setReviewed(false); setNotes(''); setEvidence([]); setPhotos([]); setReviewHistory([]); setMessage('');
+    const [response, media, history] = await Promise.all([
       supabase.from('verification_documents').select('id,document_type,storage_path').eq('campaign_id', item.id),
       supabase.from('campaign_media').select('id,storage_path').eq('campaign_id', item.id).order('display_order'),
+      supabase.from('review_events').select('id,decision,notes,created_at').eq('campaign_id', item.id)
+        .order('created_at', { ascending: false }),
     ]);
-    if (response.error || media.error) setMessage(response.error?.message || media.error?.message || 'Could not load files.');
+    if (response.error || media.error || history.error) setMessage(response.error?.message || media.error?.message || history.error?.message || 'Could not load review data.');
     else {
       setEvidence((response.data || []) as Evidence[]);
       setPhotos((media.data || []) as CampaignPhoto[]);
+      setReviewHistory((history.data || []) as ReviewEvent[]);
     }
   }
   async function openEvidence(doc: Evidence) {
@@ -131,37 +141,36 @@ export default function Dashboard() {
       return;
     }
     setBusy(true); setMessage('');
-    const { error } = await supabase.from('campaigns').update({ status }).eq('id', selected.id);
+    const { error } = await supabase.rpc('tesfa_review_campaign', {
+      p_campaign_id: selected.id,
+      p_decision: status,
+      p_notes: notes.trim() || 'Reviewer inspected the application and supporting evidence.',
+    });
     if (error) {
       setBusy(false);
       setMessage(error.message);
       return;
     }
-    const event = await supabase.from('review_events').insert({
-      campaign_id: selected.id, reviewer_id: user.id, decision: status,
-      notes: notes.trim() || 'Reviewer checked submitted evidence and application details.',
-    });
-    if (event.error) setMessage('Status changed, but audit entry failed: ' + event.error.message);
-    else setMessage('Campaign review saved.');
+    setMessage('Campaign decision and audit record saved.');
     setBusy(false); setSelected(null); await refresh();
   }
   async function reviewOrganization(id: string, status: 'approved' | 'rejected') {
     setBusy(true);
-    const result = await supabase.from('organizations').update({ status }).eq('id', id);
+    const result = await supabase.from('organizations').update({ status }).eq('id', id).in('status', ['pending', 'needs_info']);
     setBusy(false);
     setMessage(result.error?.message || 'Organization status saved.');
     await refresh();
   }
   async function reviewUpdate(id: string, status: 'approved' | 'rejected') {
     setBusy(true);
-    const result = await supabase.from('campaign_updates').update({ status }).eq('id', id);
+    const result = await supabase.from('campaign_updates').update({ status }).eq('id', id).eq('status', 'pending');
     setBusy(false);
     setMessage(result.error?.message || 'Update review saved.');
     await refresh();
   }
   async function reviewReport(id: string, status: 'resolved' | 'dismissed') {
     setBusy(true);
-    const result = await supabase.from('campaign_reports').update({ status }).eq('id', id);
+    const result = await supabase.from('campaign_reports').update({ status }).eq('id', id).eq('status', 'pending');
     setBusy(false);
     setMessage(result.error?.message || 'Report marked ' + status + '.');
     await refresh();
@@ -173,6 +182,12 @@ export default function Dashboard() {
   const completeChecks = !!selected && selected.story.trim().length >= 80 && !!selected.location?.trim() &&
     (selected.organizer_name || '').trim().length >= 3 && (selected.spending_plan || '').trim().length >= 25 &&
     evidence.length > 0 && photos.length > 0;
+  const displayedCampaigns = useMemo(() => campaigns
+    .filter((item) => (campaignFilter === 'all' || item.status === campaignFilter) &&
+      [item.title, item.location || '', item.organizer_name || ''].join(' ').toLowerCase().includes(search.trim().toLowerCase()))
+    .sort((a, b) => campaignFilter === 'submitted'
+      ? a.created_at.localeCompare(b.created_at) : b.created_at.localeCompare(a.created_at)),
+    [campaigns, campaignFilter, search]);
 
   if (!ready || checking) return <main className="sign-in card"><div className="brand">TESFA</div><p className="muted">Checking your account…</p></main>;
   if (!user) return <main className="sign-in card">
@@ -224,17 +239,27 @@ export default function Dashboard() {
           <div className="card"><div className="small">Needs information</div><div className="count">{needInfo}</div></div>
         </div>
         <div className="card">
-          <h2>Applications</h2>
+          <div className="topline" style={{ flexWrap: 'wrap', marginBottom: 19 }}>
+            <div><h2 style={{ marginBottom: 4 }}>Applications</h2><span className="small">{displayedCampaigns.length} matching records</span></div>
+            <div className="review-filters">
+              <input type="search" aria-label="Search campaigns" placeholder="Search campaigns" value={search} onChange={(e) => setSearch(e.target.value)} />
+              <select aria-label="Filter by status" value={campaignFilter} onChange={(e) => setCampaignFilter(e.target.value as CampaignFilter)}>
+                <option value="submitted">Awaiting review</option><option value="all">All statuses</option>
+                <option value="draft">Drafts</option><option value="needs_info">Needs information</option>
+                <option value="approved">Approved</option><option value="rejected">Rejected</option>
+              </select>
+            </div>
+          </div>
           <div style={{ overflowX: 'auto' }}>
             <table className="table"><thead><tr><th>Campaign</th><th className="hide-small">Category</th><th>Status</th><th className="hide-small">Submitted</th><th>Review</th></tr></thead><tbody>
-              {campaigns.map((item) => <tr key={item.id}>
+              {displayedCampaigns.map((item) => <tr key={item.id}>
                 <td><strong>{item.title}</strong><div className="small">{cash(item.goal_etb)}</div></td>
                 <td className="hide-small">{item.category}</td>
                 <td><span className="status">{item.status.replace('_', ' ')}</span></td>
                 <td className="hide-small">{date(item.created_at)}</td>
                 <td><button className="link" onClick={() => openCampaign(item)}>Open</button></td>
               </tr>)}
-              {!campaigns.length && <tr><td colSpan={5} className="empty">No campaign applications yet.</td></tr>}
+              {!displayedCampaigns.length && <tr><td colSpan={5} className="empty">{campaigns.length ? 'No applications match these filters.' : 'No campaign applications yet.'}</td></tr>}
             </tbody></table>
           </div>
         </div>
@@ -257,6 +282,11 @@ export default function Dashboard() {
               <strong>{doc.document_type}</strong><div className="small">Uploaded file. This does not establish authenticity.</div>
               <button className="btn secondary" style={{ marginTop: 10 }} onClick={() => openEvidence(doc)}>View private file</button>
             </div>) : <p className="muted">No evidence files submitted.</p>}
+            <h3>Review history</h3>
+            {reviewHistory.length ? reviewHistory.map((entry) => <div key={entry.id} className="history-item">
+              <strong>{entry.decision.replace('_', ' ')}</strong><span className="small">{date(entry.created_at)}</span>
+              <p style={{ marginTop: 8 }}>{entry.notes || 'No reviewer notes'}</p>
+            </div>) : <p className="muted">No previous staff decisions.</p>}
           </section>
           <section className="card">
             <h2>Review checklist</h2>
@@ -269,11 +299,11 @@ export default function Dashboard() {
             <div className="check">{evidence.length ? '✓' : '✕'} Supporting evidence uploaded</div>
             <label className="check"><input type="checkbox" checked={reviewed} onChange={(e) => setReviewed(e.target.checked)} /> I opened the evidence and inspected the application. I understand this does not establish document authenticity.</label>
             <div className="field"><label htmlFor="review-notes">Reviewer notes</label><textarea id="review-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Reason for your decision" /></div>
-            <div className="actions">
+            {selected.status === 'submitted' ? <div className="actions">
               <button className="btn" disabled={busy || !reviewed || !completeChecks} onClick={() => reviewCampaign('approved')}>Approve</button>
               <button className="btn secondary" disabled={busy} onClick={() => reviewCampaign('needs_info')}>More evidence</button>
               <button className="btn warn" disabled={busy} onClick={() => reviewCampaign('rejected')}>Reject</button>
-            </div>
+            </div> : <p className="small">Only submitted applications can receive a new review decision.</p>}
           </section>
         </div>}
       </>}
@@ -282,7 +312,7 @@ export default function Dashboard() {
           {organizations.map((item) => <tr key={item.id}>
             <td><strong>{item.name}</strong><div className="small">{item.registration_reference}</div><div className="small">{item.note}</div></td>
             <td><span className="status">{item.status}</span></td>
-            <td><div className="actions"><button className="btn secondary" disabled={busy} onClick={() => reviewOrganization(item.id, 'approved')}>Approve</button><button className="btn secondary" disabled={busy} onClick={() => reviewOrganization(item.id, 'rejected')}>Reject</button></div></td>
+            <td>{['pending','needs_info'].includes(item.status) ? <div className="actions"><button className="btn secondary" disabled={busy} onClick={() => reviewOrganization(item.id, 'approved')}>Approve</button><button className="btn secondary" disabled={busy} onClick={() => reviewOrganization(item.id, 'rejected')}>Reject</button></div> : <span className="small">Decision recorded</span>}</td>
           </tr>)}
           {!organizations.length && <tr><td colSpan={3} className="empty">No organization applications.</td></tr>}
         </tbody></table></div>
@@ -293,7 +323,7 @@ export default function Dashboard() {
           {updates.map((item) => <tr key={item.id}>
             <td>{item.body}<div className="small">{date(item.created_at)}</div></td>
             <td><span className="status">{item.status}</span></td>
-            <td><div className="actions"><button className="btn secondary" disabled={busy} onClick={() => reviewUpdate(item.id, 'approved')}>Approve</button><button className="btn secondary" disabled={busy} onClick={() => reviewUpdate(item.id, 'rejected')}>Reject</button></div></td>
+            <td>{item.status === 'pending' ? <div className="actions"><button className="btn secondary" disabled={busy} onClick={() => reviewUpdate(item.id, 'approved')}>Approve</button><button className="btn secondary" disabled={busy} onClick={() => reviewUpdate(item.id, 'rejected')}>Reject</button></div> : <span className="small">Reviewed</span>}</td>
           </tr>)}
           {!updates.length && <tr><td colSpan={3} className="empty">No updates submitted yet.</td></tr>}
         </tbody></table></div>

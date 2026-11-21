@@ -68,6 +68,10 @@ p { margin-top: 0; }
 .photo-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(115px,1fr)); gap: 10px; margin: 12px 0; }
 .photo { display: block; aspect-ratio: 4/3; background-size: cover; background-position: center; border-radius: 10px; background-color: var(--pale); }
 .check { display: flex; align-items: flex-start; gap: 9px; margin: 10px 0; font-size: 13px; }
+.review-filters { display: flex; flex-wrap: wrap; gap: 10px; }
+.review-filters input, .review-filters select { min-height: 41px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 7px; padding: 9px 12px; }
+.history-item { border-top: 1px solid var(--line); padding: 13px 0; }
+.history-item strong { margin-right: 13px; text-transform: capitalize; }
 .sign-in { width: min(430px, calc(100% - 35px)); margin: 11vh auto; }
 .empty { color: var(--muted); padding: 28px; text-align: center; }
 @media (max-width: 870px) {

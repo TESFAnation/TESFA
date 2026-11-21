@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 // Purely typographic identity: TESFA in uppercase. No decorative mark.
 // Run from apps/admin with `node scripts/generate-brand-assets.cjs`.
 const sharp = require('sharp');

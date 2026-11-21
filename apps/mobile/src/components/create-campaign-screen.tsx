@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Image, Pressable, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { Camera, FileText, Trash2 } from 'lucide-react-native';
@@ -11,6 +11,7 @@ import { photoUrl } from '../lib/campaigns';
 import { supabase } from '../lib/supabase';
 import { uploadCampaignFile } from '../lib/uploads';
 import { Alert } from '../lib/notify';
+import { useOrganizations } from '../lib/organization';
 
 type Category = 'medical' | 'education' | 'emergency';
 type FileRow = { id: string; storage_path: string; document_type?: string };
@@ -21,6 +22,8 @@ export default function Create() {
   const { edit } = useLocalSearchParams<{ edit?: string }>();
   const { session } = useAuth();
   const { colors } = useAppearance();
+  const { approved: approvedOrganization, pending: pendingOrganization, loading: organizationLoading, refresh: refreshOrganization } = useOrganizations();
+  useFocusEffect(useCallback(() => { void refreshOrganization(); }, [refreshOrganization]));
   const [step, setStep] = useState(1);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
@@ -174,6 +177,8 @@ export default function Create() {
   }
 
   async function submit() {
+    if (!approvedOrganization) return Alert.alert('Organization review required',
+      'Only approved organizations can submit campaigns. Open Organization registration from your account to apply or check your status.');
     if (story.trim().length < 80 || plan.trim().length < 25)
       return Alert.alert('Complete your application', 'Your story needs at least 80 characters and the spending plan needs at least 25.');
     if (!photos.length || !documents.length)
@@ -209,6 +214,14 @@ export default function Create() {
         <Txt size={13} muted>Your application is private until approved. Organizers must explain the need and provide supporting evidence.</Txt>
       </Card>
       {!session && <Button label="Sign in to continue" onPress={() => router.push('/auth')} />}
+      {!!session && !organizationLoading && <Card style={{ gap: 10 }}>
+        <Txt size={16} weight="700">{approvedOrganization ? 'Your organization is approved' : pendingOrganization ? 'Organization review in progress' : 'Register your organization'}</Txt>
+        <Txt size={13} muted>{approvedOrganization
+          ? approvedOrganization.name + ' can submit campaigns for staff review.'
+          : pendingOrganization ? 'You can prepare a draft now. Submission will open after staff approve your organization.'
+          : 'TESFA accepts campaigns from organizations. Register yours before submitting an application.'}</Txt>
+        {!approvedOrganization && <Button label="Organization registration" outline onPress={() => router.push('/organization')} />}
+      </Card>}
       <Txt size={19} weight="700">Campaign basics</Txt>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {categories.map((item) => <Pressable key={item} onPress={() => setCategory(item)}
@@ -217,7 +230,7 @@ export default function Create() {
         </Pressable>)}
       </View>
       <Field label="Campaign title" placeholder="What is the campaign for?" value={title} onChangeText={setTitle} />
-      <Field label="Organizer or organization name" placeholder="Full name or registered organization" value={organizer} onChangeText={setOrganizer} />
+      <Field label="Organizer or organization name" placeholder={approvedOrganization?.name || 'Registered organization name'} value={organizer} onChangeText={setOrganizer} />
       <Field label="City or area" placeholder="Addis Ababa" value={location} onChangeText={setLocation} />
       <Field label="Fundraising goal (ETB)" keyboardType="decimal-pad" placeholder="50000" value={goal} onChangeText={setGoal} />
       <Button label="Continue to story" disabled={!session || busy} onPress={() => { if (basicsValid()) setStep(2); }} />
@@ -261,7 +274,12 @@ export default function Create() {
         <Pressable onPress={() => removeFile(file, true)} accessibilityLabel="Remove document"><Trash2 color={colors.subtle} size={19} /></Pressable>
       </Card>)}
       <Button label={busy ? 'Working…' : 'Upload evidence'} disabled={busy} outline onPress={addEvidence} />
-      <Button label={busy ? 'Submitting…' : 'Submit for staff review'} disabled={busy || !session} onPress={submit} />
+      {!approvedOrganization && <Card>
+        <Txt weight="700">Organization approval required</Txt>
+        <Txt muted size={13}>Save your draft while TESFA reviews your organization registration. You can submit this campaign after approval.</Txt>
+        <Button label="Check organization status" outline onPress={() => router.push('/organization')} />
+      </Card>}
+      <Button label={busy ? 'Submitting…' : 'Submit for staff review'} disabled={busy || !session || !approvedOrganization} onPress={submit} />
       <Button label={busy ? 'Saving…' : 'Save private draft'} disabled={busy || !session} outline onPress={() => safeDraft(true)} />
       <Button label="Back to story" outline onPress={() => setStep(2)} />
       <Txt size={12} muted>TESFA checks applications for completeness. Approval requires a staff decision and does not imply government authentication.</Txt>

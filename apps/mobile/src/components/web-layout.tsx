@@ -17,6 +17,7 @@ export function WebHeader() {
   const items = [
     { label: 'Home', path: '/' },
     { label: 'Explore causes', path: '/explore' },
+    { label: 'How it works', path: '/how-it-works' },
     { label: 'Start a campaign', path: '/create' },
   ] as const;
   return <View style={{ backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.line, zIndex: 2 }}>
@@ -25,7 +26,7 @@ export function WebHeader() {
       <Pressable accessibilityRole="link" onPress={() => router.push('/')} style={{ paddingVertical: 14, flexShrink: 0 }}>
         <Txt size={compact ? 26 : 30} weight="800" style={{ letterSpacing: 2.4, color: colors.navy }}>TESFA</Txt>
       </Pressable>
-      {!compact && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 34, alignSelf: 'stretch' }}>
+      {!compact && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 24, alignSelf: 'stretch' }}>
         {items.map((item) => <Pressable key={item.path} accessibilityRole="link" onPress={() => router.push(item.path)}
           style={{ borderBottomWidth: pathname === item.path ? 2 : 2, borderBottomColor: pathname === item.path ? colors.navy : 'transparent',
             paddingHorizontal: 2, justifyContent: 'center' }}>
@@ -80,6 +81,7 @@ export function WebFooter() {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 22, flexWrap: 'wrap' }}>
           <Pressable onPress={() => router.push('/explore')}><Txt size={13}>Explore</Txt></Pressable>
           <Pressable onPress={() => router.push('/create')}><Txt size={13}>Create a campaign</Txt></Pressable>
+          <Pressable onPress={() => router.push('/how-it-works')}><Txt size={13}>How it works</Txt></Pressable>
           <Pressable onPress={() => router.push('/profile')}><Txt size={13}>Account</Txt></Pressable>
         </View>
       </View>

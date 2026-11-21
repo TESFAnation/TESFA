@@ -6,10 +6,12 @@ import { Button, Card, Screen, Txt } from '../../components/primitives';
 import { useAppearance, type ThemeChoice } from '../../lib/theme';
 import { useAuth } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
+import { useOrganizations } from '../../lib/organization';
 
 export default function Profile() {
   const { choice, setChoice, colors } = useAppearance();
   const { session } = useAuth();
+  const { approved, pending } = useOrganizations();
   return <Screen>
     <Txt size={26} weight="700">Profile</Txt>
     <Card>
@@ -19,6 +21,9 @@ export default function Profile() {
         <Button label="My campaigns" onPress={() => router.push('/drafts')} outline />
         <Button label="Saved campaigns" onPress={() => router.push('/saved')} outline />
         <Button label="Organization registration" onPress={() => router.push('/organization')} outline />
+        <Txt muted size={12}>{approved ? 'Organization approved: ' + approved.name
+          : pending ? 'Organization application is waiting for staff review.'
+          : 'Register an organization before submitting campaigns.'}</Txt>
         <Pressable style={{ flexDirection: 'row', gap: 8, alignItems: 'center', paddingTop: 8 }} onPress={() => supabase.auth.signOut()}>
           <LogOut color={colors.navy} size={18} /><Txt size={14}>Sign out</Txt>
         </Pressable>
@@ -36,7 +41,7 @@ export default function Profile() {
     </Card>
     <Card>
       <Txt size={17} weight="700">Appearance</Txt>
-      <Txt muted size={12}>Your choice will be saved on this phone.</Txt>
+      <Txt muted size={12}>Your choice will be saved on this device.</Txt>
       <View style={{ flexDirection: 'row', gap: 7 }}>
         {(['system', 'light', 'dark'] as ThemeChoice[]).map((option) =>
           <Pressable key={option} accessibilityRole="button" onPress={() => setChoice(option)}
@@ -46,7 +51,7 @@ export default function Profile() {
       </View>
     </Card>
     <Card>
-      <Pressable style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }} onPress={() => router.push('/create')}>
+      <Pressable style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }} onPress={() => router.push('/how-it-works')}>
         <Txt weight="600">How campaign review works</Txt><ChevronRight color={colors.navy} size={20} />
       </Pressable>
       <Txt muted size={12}>TESFA is in prototype testing. Evidence files can be uploaded privately, but identity checks and real payments are not yet active.</Txt>

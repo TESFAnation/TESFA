@@ -13,11 +13,13 @@ function Routes() {
       <Stack.Screen name="campaign/[id]" />
       <Stack.Screen name="donate" />
       <Stack.Screen name="auth" />
+      <Stack.Screen name="reset-password" />
       <Stack.Screen name="drafts" />
       <Stack.Screen name="organization" />
       <Stack.Screen name="saved" />
       <Stack.Screen name="report" />
       <Stack.Screen name="updates" />
+      <Stack.Screen name="how-it-works" />
     </Stack>
   </>;
 }

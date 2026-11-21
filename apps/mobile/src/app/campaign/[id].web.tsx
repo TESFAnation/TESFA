@@ -3,7 +3,7 @@ import { Image, Pressable, useWindowDimensions, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Bookmark, CalendarDays, ChevronLeft, Flag, MapPin, Share2, ShieldCheck } from 'lucide-react-native';
 import { Txt } from '../../components/primitives';
-import { WebAction, WebHeader, WebPage } from '../../components/web-layout';
+import { WebAction, WebPage } from '../../components/web-layout';
 import { money, photoUrl, titleCase, type Campaign } from '../../lib/campaigns';
 import { useAppearance } from '../../lib/theme';
 import { useAuth } from '../../lib/auth';
@@ -86,7 +86,6 @@ export default function WebCampaignDetail() {
 
   const progress = campaign ? Math.max(0, Math.min(100, campaign.raised_etb / Math.max(campaign.goal_etb, 1) * 100)) : 0;
   return <View style={{ flex: 1, backgroundColor: colors.page }}>
-    <WebHeader />
     <WebPage>
       <Pressable accessibilityRole="link" onPress={() => router.push('/explore')}
         style={{ marginTop: 34, marginBottom: 24, flexDirection: 'row', alignItems: 'center', gap: 7 }}>
