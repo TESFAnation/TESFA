@@ -33,7 +33,7 @@ export default function Saved() {
       if (active) { setItems(withPhotos); setLoading(false); }
     })();
     return () => { active = false; };
-  }, [session?.user.id]));
+  }, [session]));
   return <Screen>
     <Pressable onPress={() => router.back()}><Txt muted>‹ Back</Txt></Pressable>
     <Txt size={27} weight="700">Saved campaigns</Txt>

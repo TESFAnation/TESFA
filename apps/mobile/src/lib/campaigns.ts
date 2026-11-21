@@ -43,7 +43,7 @@ export function useCampaigns() {
     }
     setLoading(false);
   }, []);
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { void Promise.resolve().then(refresh); }, [refresh]);
   return { live, loading, error, refresh };
 }
 

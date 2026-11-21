@@ -33,7 +33,6 @@ export default function Create() {
   const [photos, setPhotos] = useState<FileRow[]>([]);
   const [documents, setDocuments] = useState<FileRow[]>([]);
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState('draft');
 
   const loadFiles = useCallback(async (id: string) => {
     const [photoResult, evidenceResult] = await Promise.all([
@@ -54,10 +53,10 @@ export default function Create() {
         }
         setDraftId(data.id); setTitle(data.title); setOrganizer(data.organizer_name || '');
         setStory(data.story); setPlan(data.spending_plan || ''); setGoal(String(data.goal_etb));
-        setLocation(data.location || ''); setCategory(data.category as Category); setStatus(data.status);
+        setLocation(data.location || ''); setCategory(data.category as Category);
         loadFiles(data.id);
       });
-  }, [edit, session?.user.id, loadFiles]);
+  }, [edit, session, loadFiles]);
 
   function basicsValid() {
     if (title.trim().length < 8 || title.trim().length > 140 || organizer.trim().length < 3 ||
@@ -79,7 +78,6 @@ export default function Create() {
     if (draftId) {
       const { error } = await supabase.from('campaigns').update(fields).eq('id', draftId).eq('owner_id', session.user.id);
       if (error) throw error;
-      setStatus('draft');
       return draftId;
     }
     const { data, error } = await supabase.from('campaigns').insert({ ...fields, owner_id: session.user.id })

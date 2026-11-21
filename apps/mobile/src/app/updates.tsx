@@ -22,7 +22,7 @@ export default function Updates() {
       .eq('campaign_id', campaignId).eq('author_id', session.user.id)
       .order('created_at', { ascending: false });
     setUpdates((result.data || []) as Update[]);
-  }, [campaignId, session?.user.id]);
+  }, [campaignId, session]);
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
   async function submit() {
     if (!session || !campaignId || !allowed) return;

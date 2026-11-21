@@ -27,7 +27,7 @@ export default function Auth() {
     <Pressable onPress={() => router.back()}><Txt muted>‹ Back</Txt></Pressable>
     <Txt size={28} weight="800" style={{ color: colors.navy, letterSpacing: 1 }}>TESFA</Txt>
     <Txt size={23} weight="700">{register ? 'Create an account' : 'Sign in'}</Txt>
-    <Txt muted>Use your own email. Do not enter anyone else's private identification details while testing.</Txt>
+    <Txt muted>Use your own email. Do not enter anyone else&apos;s private identification details while testing.</Txt>
     <Field label="Email address" keyboardType="email-address" value={email} onChangeText={setEmail} placeholder="you@example.com" />
     <Field label="Password" secureTextEntry value={password} onChangeText={setPassword} placeholder="At least 8 characters" />
     <Button label={busy ? 'Please wait…' : register ? 'Create account' : 'Sign in'} disabled={busy} onPress={submit} />

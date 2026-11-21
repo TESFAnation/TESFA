@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Pressable, View } from 'react-native';
+import { Alert, Pressable } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Button, Card, Field, Screen, Txt } from '../components/primitives';
 import { useAppearance } from '../lib/theme';

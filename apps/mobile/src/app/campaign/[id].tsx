@@ -39,12 +39,12 @@ export default function CampaignDetails() {
     setUpdates((publicUpdates.data || []) as PublicUpdate[]);
     setLoading(false);
   }, [id]);
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { void Promise.resolve().then(refresh); }, [refresh]);
   useEffect(() => {
-    if (!id || !session) { setSaved(false); return; }
+    if (!id || !session) { void Promise.resolve().then(() => setSaved(false)); return; }
     supabase.from('saved_campaigns').select('campaign_id').eq('campaign_id', id)
       .eq('user_id', session.user.id).maybeSingle().then(({ data }) => setSaved(!!data));
-  }, [id, session?.user.id]);
+  }, [id, session]);
 
   async function toggleSaved() {
     if (!session) return router.push('/auth');
