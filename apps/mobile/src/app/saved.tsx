@@ -1,0 +1,50 @@
+import React, { useCallback, useState } from 'react';
+import { Pressable } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { Bookmark } from 'lucide-react-native';
+import { Button, Card, Screen, Txt } from '../components/primitives';
+import { CampaignCard } from '../components/campaign-card';
+import { attachCampaignPhotos, type Campaign } from '../lib/campaigns';
+import { useAuth } from '../lib/auth';
+import { useAppearance } from '../lib/theme';
+import { supabase } from '../lib/supabase';
+
+export default function Saved() {
+  const { session } = useAuth();
+  const { colors } = useAppearance();
+  const [items, setItems] = useState<Campaign[]>([]);
+  const [loading, setLoading] = useState(true);
+  useFocusEffect(useCallback(() => {
+    if (!session) { setLoading(false); return; }
+    let active = true;
+    setLoading(true);
+    (async () => {
+      const { data } = await supabase.from('saved_campaigns').select('campaign_id').eq('user_id', session.user.id);
+      const ids = (data || []).map((row) => row.campaign_id);
+      if (!ids.length) { if (active) { setItems([]); setLoading(false); } return; }
+      const result = await supabase.from('campaigns')
+        .select('id,title,category,location,story,goal_etb,raised_etb,organizer_name,spending_plan,created_at')
+        .in('id', ids).eq('status', 'approved').order('created_at', { ascending: false });
+      const rows = (result.data || []).map((item) => ({
+        ...item, location: item.location || 'Ethiopia', goal_etb: Number(item.goal_etb),
+        raised_etb: Number(item.raised_etb || 0),
+      } as Campaign));
+      const withPhotos = await attachCampaignPhotos(rows);
+      if (active) { setItems(withPhotos); setLoading(false); }
+    })();
+    return () => { active = false; };
+  }, [session?.user.id]));
+  return <Screen>
+    <Pressable onPress={() => router.back()}><Txt muted>‹ Back</Txt></Pressable>
+    <Txt size={27} weight="700">Saved campaigns</Txt>
+    <Txt muted>Keep track of causes you care about.</Txt>
+    {!session && <Button label="Sign in to save campaigns" onPress={() => router.push('/auth')} />}
+    {items.map((campaign) => <CampaignCard key={campaign.id} campaign={campaign} />)}
+    {!loading && session && !items.length && <Card style={{ alignItems: 'center', paddingVertical: 26 }}>
+      <Bookmark size={28} color={colors.navy} /><Txt weight="700">Nothing saved yet</Txt>
+      <Txt muted size={13}>Open an approved campaign and tap the bookmark icon.</Txt>
+      <Button label="Explore campaigns" onPress={() => router.push('/explore')} />
+    </Card>}
+    {loading && <Txt muted>Loading saved campaigns…</Txt>}
+  </Screen>;
+}

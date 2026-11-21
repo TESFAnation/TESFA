@@ -64,6 +64,9 @@ p { margin-top: 0; }
 .actions { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
 .message { color: #a64646; font-size: 13px; margin: 10px 0; }
 .review { display: grid; grid-template-columns: minmax(0,1fr) 340px; gap: 18px; margin-top: 22px; }
+.review h3 { margin-top: 20px; }
+.photo-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(115px,1fr)); gap: 10px; margin: 12px 0; }
+.photo { display: block; aspect-ratio: 4/3; background-size: cover; background-position: center; border-radius: 10px; background-color: var(--pale); }
 .check { display: flex; align-items: flex-start; gap: 9px; margin: 10px 0; font-size: 13px; }
 .sign-in { width: min(430px, calc(100% - 35px)); margin: 11vh auto; }
 .empty { color: var(--muted); padding: 28px; text-align: center; }

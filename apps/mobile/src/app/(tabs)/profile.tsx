@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
-import { ChevronRight, LogOut } from 'lucide-react-native';
+import { Bookmark, ChevronRight, LogOut } from 'lucide-react-native';
 import { Button, Card, Screen, Txt } from '../../components/primitives';
 import { useAppearance, type ThemeChoice } from '../../lib/theme';
 import { useAuth } from '../../lib/auth';
@@ -17,6 +17,7 @@ export default function Profile() {
         <Txt size={17} weight="700">Your account</Txt>
         <Txt muted>{session.user.email}</Txt>
         <Button label="My campaigns" onPress={() => router.push('/drafts')} outline />
+        <Button label="Saved campaigns" onPress={() => router.push('/saved')} outline />
         <Button label="Organization registration" onPress={() => router.push('/organization')} outline />
         <Pressable style={{ flexDirection: 'row', gap: 8, alignItems: 'center', paddingTop: 8 }} onPress={() => supabase.auth.signOut()}>
           <LogOut color={colors.navy} size={18} /><Txt size={14}>Sign out</Txt>
@@ -25,7 +26,13 @@ export default function Profile() {
         <Txt size={18} weight="700">Welcome to TESFA</Txt>
         <Txt muted>Anyone can explore. Sign in to start a campaign or track your applications.</Txt>
         <Button label="Sign in or create account" onPress={() => router.push('/auth')} />
+        <Button label="Explore campaigns" onPress={() => router.push('/explore')} outline />
       </>}
+    </Card>
+    <Card>
+      <Pressable style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }} onPress={() => router.push('/saved')}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}><Bookmark color={colors.navy} size={18} /><Txt weight="600">Saved causes</Txt></View><ChevronRight color={colors.navy} size={20} />
+      </Pressable>
     </Card>
     <Card>
       <Txt size={17} weight="700">Appearance</Txt>
@@ -42,7 +49,7 @@ export default function Profile() {
       <Pressable style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }} onPress={() => router.push('/create')}>
         <Txt weight="600">How campaign review works</Txt><ChevronRight color={colors.navy} size={20} />
       </Pressable>
-      <Txt muted size={12}>TESFA is in prototype testing. No real payments or ID checks are active.</Txt>
+      <Txt muted size={12}>TESFA is in prototype testing. Evidence files can be uploaded privately, but identity checks and real payments are not yet active.</Txt>
     </Card>
   </Screen>;
 }

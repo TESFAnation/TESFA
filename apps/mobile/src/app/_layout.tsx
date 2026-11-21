@@ -15,6 +15,9 @@ function Routes() {
       <Stack.Screen name="auth" />
       <Stack.Screen name="drafts" />
       <Stack.Screen name="organization" />
+      <Stack.Screen name="saved" />
+      <Stack.Screen name="report" />
+      <Stack.Screen name="updates" />
     </Stack>
   </>;
 }

@@ -4,26 +4,24 @@ import { supabase } from './supabase';
 export type Campaign = {
   id: string; title: string; category: 'medical' | 'education' | 'emergency';
   location: string; story: string; goal_etb: number; raised_etb: number;
-  demo?: boolean;
+  organizer_name?: string | null; spending_plan?: string | null; created_at?: string;
+  photo_url?: string | null;
 };
 
-export const demoCampaigns: Campaign[] = [
-  {
-    id: 'sample-school', title: 'Keep a student in school', category: 'education',
-    location: 'Addis Ababa', goal_etb: 48000, raised_etb: 16500, demo: true,
-    story: 'This is a fictional example. The campaign represents the cost of books, transport, and school fees for a student who wants to finish secondary school. No real student or school is involved.',
-  },
-  {
-    id: 'sample-hospital', title: 'Help cover treatment costs', category: 'medical',
-    location: 'Bahir Dar', goal_etb: 120000, raised_etb: 54000, demo: true,
-    story: 'This sample story illustrates how a family could request assistance with medical expenses and travel. All names, costs, and fundraising totals are invented for the TESFA prototype.',
-  },
-  {
-    id: 'sample-emergency', title: 'Emergency housing support', category: 'emergency',
-    location: 'Hawassa', goal_etb: 76000, raised_etb: 21000, demo: true,
-    story: 'This is a fictional emergency campaign to demonstrate the application. It does not represent a real family or an ongoing fundraiser.',
-  },
-];
+export function photoUrl(path: string) {
+  return supabase.storage.from('tesfa-campaign-photos').getPublicUrl(path).data.publicUrl;
+}
+
+export async function attachCampaignPhotos(rows: Campaign[]): Promise<Campaign[]> {
+  if (!rows.length) return [];
+  const ids = rows.map((row) => row.id);
+  const { data } = await supabase.from('campaign_media')
+    .select('campaign_id,storage_path,display_order').in('campaign_id', ids)
+    .order('display_order', { ascending: true });
+  const first = new Map<string, string>();
+  for (const media of data || []) if (!first.has(media.campaign_id)) first.set(media.campaign_id, photoUrl(media.storage_path));
+  return rows.map((row) => ({ ...row, photo_url: first.get(row.id) || null }));
+}
 
 export function useCampaigns() {
   const [live, setLive] = useState<Campaign[]>([]);
@@ -32,15 +30,16 @@ export function useCampaigns() {
   const refresh = useCallback(async () => {
     setLoading(true);
     const result = await supabase.from('campaigns')
-      .select('id,title,category,location,story,goal_etb,raised_etb')
+      .select('id,title,category,location,story,goal_etb,raised_etb,organizer_name,spending_plan,created_at')
       .eq('status', 'approved').order('created_at', { ascending: false });
     if (result.error) setError('Approved campaigns could not be loaded.');
     else {
       setError('');
-      setLive((result.data || []).map((row) => ({
+      const rows = (result.data || []).map((row) => ({
         ...row, location: row.location || 'Ethiopia',
         goal_etb: Number(row.goal_etb), raised_etb: Number(row.raised_etb || 0),
-      } as Campaign)));
+      } as Campaign));
+      setLive(await attachCampaignPhotos(rows));
     }
     setLoading(false);
   }, []);
@@ -50,4 +49,3 @@ export function useCampaigns() {
 
 export const money = (amount: number) => 'ETB ' + Math.round(amount).toLocaleString('en-US');
 export const titleCase = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
-

@@ -24,4 +24,4 @@ This action must be performed through the trusted Supabase dashboard by the proj
 
 ## Not supported yet
 
-Real payments, payout reconciliation, actual ID or phone verification, real evidence uploads, advanced fraud detection, and production compliance are not available. Use only fictional information while testing.
+Real payments, payout reconciliation, actual ID or phone verification, advanced fraud detection, and production compliance are not available. Evidence and campaign photo uploads are working, but test with fictional non-sensitive documents only until the privacy and licensing process is ready.
