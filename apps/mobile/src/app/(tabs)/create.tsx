@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Image, Pressable, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -10,6 +10,7 @@ import { useAppearance } from '../../lib/theme';
 import { photoUrl } from '../../lib/campaigns';
 import { supabase } from '../../lib/supabase';
 import { uploadCampaignFile } from '../../lib/uploads';
+import { Alert } from '../../lib/notify';
 
 type Category = 'medical' | 'education' | 'emergency';
 type FileRow = { id: string; storage_path: string; document_type?: string };

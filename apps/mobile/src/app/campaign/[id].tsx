@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, Share, View } from 'react-native';
+import { Image, Platform, Pressable, ScrollView, Share, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Bookmark, CalendarDays, Flag, MapPin, Share2, ShieldCheck } from 'lucide-react-native';
 import { Button, Card, Screen, Txt } from '../../components/primitives';
@@ -7,6 +7,7 @@ import { money, photoUrl, type Campaign } from '../../lib/campaigns';
 import { useAppearance } from '../../lib/theme';
 import { useAuth } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
+import { Alert } from '../../lib/notify';
 
 type PublicUpdate = { id: string; body: string; created_at: string };
 export default function CampaignDetails() {
@@ -57,6 +58,19 @@ export default function CampaignDetails() {
     else setSaved(!saved);
     setBusy(false);
   }
+  async function shareCampaign() {
+    if (!campaign) return;
+    const message = campaign.title + '\n' + campaign.location + '\nFind this campaign in TESFA.';
+    if (Platform.OS === 'web') {
+      try {
+        if (navigator.share) await navigator.share({ title: campaign.title, text: message });
+        else {
+          await navigator.clipboard.writeText(message);
+          Alert.alert('Copied', 'Campaign details copied to your clipboard.');
+        }
+      } catch { /* The browser share dialog can be cancelled. */ }
+    } else await Share.share({ message });
+  }
 
   if (loading) return <Screen><Pressable onPress={() => router.back()}><Txt muted>‹ Back</Txt></Pressable><Txt muted>Loading campaign…</Txt></Screen>;
   if (!campaign) return <Screen><Pressable onPress={() => router.back()}><Txt muted>‹ Back</Txt></Pressable><Txt size={21} weight="700">Campaign unavailable</Txt><Txt muted>This cause is not published or is no longer available.</Txt></Screen>;
@@ -68,7 +82,7 @@ export default function CampaignDetails() {
         <Pressable accessibilityLabel={saved ? 'Remove saved campaign' : 'Save campaign'} onPress={toggleSaved}>
           <Bookmark size={23} color={colors.navy} fill={saved ? colors.navy : 'transparent'} />
         </Pressable>
-        <Pressable accessibilityLabel="Share campaign" onPress={() => Share.share({ message: campaign.title + '\n' + campaign.location + '\nFind this campaign in TESFA.' })}><Share2 color={colors.navy} size={23} /></Pressable>
+        <Pressable accessibilityLabel="Share campaign" onPress={shareCampaign}><Share2 color={colors.navy} size={23} /></Pressable>
       </View>
     </View>
     {!!photos.length && <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -22 }} contentContainerStyle={{ paddingHorizontal: 22, gap: 10 }}>

@@ -1,12 +1,16 @@
 import React from 'react';
-import { Pressable, ScrollView, Text, TextInput, View, type KeyboardTypeOptions } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, TextInput, View, type KeyboardTypeOptions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppearance } from '../lib/theme';
 
 export function Screen({ children }: { children: React.ReactNode }) {
   const { colors } = useAppearance();
   return <SafeAreaView style={{ flex: 1, backgroundColor: colors.page }} edges={['top']}>
-    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 21, paddingBottom: 48, gap: 17 }}>
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{
+      paddingHorizontal: 22, paddingTop: Platform.OS === 'web' ? 30 : 21, paddingBottom: 62,
+      gap: 17, width: '100%', maxWidth: Platform.OS === 'web' ? 800 : undefined,
+      alignSelf: 'center',
+    }}>
       {children}
     </ScrollView>
   </SafeAreaView>;

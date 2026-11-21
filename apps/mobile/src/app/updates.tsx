@@ -1,9 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, Pressable } from 'react-native';
+import { Pressable } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Button, Card, Field, Screen, Txt } from '../components/primitives';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
+import { Alert } from '../lib/notify';
 
 type Update = { id: string; body: string; status: string; created_at: string };
 export default function Updates() {

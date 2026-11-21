@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { Alert, Pressable } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Platform, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Button, Field, Screen, Txt } from '../components/primitives';
 import { supabase } from '../lib/supabase';
 import { useAppearance } from '../lib/theme';
+import { useAuth } from '../lib/auth';
+import { Alert } from '../lib/notify';
 
 export default function Auth() {
   const [register, setRegister] = useState(false);
@@ -11,6 +13,10 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { colors } = useAppearance();
+  const { session } = useAuth();
+  useEffect(() => {
+    if (Platform.OS === 'web' && session) router.replace('/profile');
+  }, [session]);
 
   async function submit() {
     if (!email.includes('@') || password.length < 8) return Alert.alert('Check your details', 'Use a valid email and a password of at least 8 characters.');

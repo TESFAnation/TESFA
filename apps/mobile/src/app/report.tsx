@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Alert, Pressable } from 'react-native';
+import { Pressable } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Button, Card, Field, Screen, Txt } from '../components/primitives';
 import { useAppearance } from '../lib/theme';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
+import { Alert } from '../lib/notify';
 
 const reasons = [
   { key: 'misleading', label: 'Misleading information' },

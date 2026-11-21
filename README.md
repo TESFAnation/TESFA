@@ -7,6 +7,7 @@ It includes a mobile app for donors and organizers, a web dashboard for reviewer
 ## Projects
 
 - `apps/mobile`: Expo / React Native app. Start with `npm install` and `npm start` inside that folder.
+- The same Expo app also builds for browsers with `npx expo export --platform web`. The browser site is published separately from the staff dashboard.
 - `apps/admin`: Next.js reviewer dashboard. Start with `npm install` and `npm run dev` inside that folder.
 - `supabase`: database changes.
 - `docs`: product and setup notes.

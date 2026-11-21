@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Alert, Pressable } from 'react-native';
+import { Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Button, Field, Screen, Txt } from '../components/primitives';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
+import { Alert } from '../lib/notify';
 
 export default function Organization() {
   const { session } = useAuth();
