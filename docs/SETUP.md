@@ -4,7 +4,11 @@
 2. In a terminal run `cd apps/mobile && npm install && npx expo start --tunnel`.
 3. Install **Expo Go** on Android. Open the Expo Go link provided by Expo. On one phone, switching between Codespaces and Expo Go is easiest using two browser tabs.
 4. The mobile app is configured for the development Supabase project. Sign up with an email you control. Supabase may ask you to verify the email.
-5. For the reviewer dashboard, use the Vercel URL when available, or start `cd apps/admin && npm install && npm run dev` in Codespaces.
+5. The reviewer dashboard is deployed at [TESFA admin](https://tesfa-admin-sigma.vercel.app). Vercel may first ask you to sign in to your Vercel account. The TESFA staff sign-in is a separate email/password login.
+
+## Deployment note
+
+The dashboard was published to the `tesfa-admin` Vercel project directly. The new Vercel team does not yet have its GitHub integration installed, so changes pushed to GitHub will not automatically redeploy the dashboard. When ready, install Vercel's GitHub integration and connect `TESFAnation/TESFA`, setting the project Root Directory to `apps/admin`.
 
 ## Grant reviewer access
 
