@@ -1,9 +1,10 @@
 import React from 'react';
 import { useWindowDimensions, View } from 'react-native';
 import { ClipboardCheck, FileText, Image as PhotoIcon, LockKeyhole, ShieldCheck } from 'lucide-react-native';
-import CreateCampaign from './create';
 import { Txt } from '../../components/primitives';
 import { useAppearance } from '../../lib/theme';
+
+import CreateCampaign from '../../components/create-campaign-screen';
 
 const guidance = [
   { Icon: FileText, heading: 'Explain the need', body: 'Describe the cause, location, goal, and how the funds would be used.' },
