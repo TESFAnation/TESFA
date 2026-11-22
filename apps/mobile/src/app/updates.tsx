@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { Pressable } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Button, Card, Field, Screen, Txt } from '../components/primitives';
@@ -10,21 +10,35 @@ type Update = { id: string; body: string; status: string; created_at: string };
 export default function Updates() {
   const { campaignId } = useLocalSearchParams<{ campaignId: string }>();
   const { session } = useAuth();
+  const userId = session?.user.id;
   const [text, setText] = useState('');
   const [updates, setUpdates] = useState<Update[]>([]);
   const [busy, setBusy] = useState(false);
   const [allowed, setAllowed] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const requestId = useRef(0);
   const refresh = useCallback(async () => {
-    if (!campaignId || !session) return;
-    const { data } = await supabase.from('campaigns').select('id')
-      .eq('id', campaignId).eq('owner_id', session.user.id).eq('status', 'approved').maybeSingle();
-    setAllowed(!!data);
-    const result = await supabase.from('campaign_updates').select('id,body,status,created_at')
-      .eq('campaign_id', campaignId).eq('author_id', session.user.id)
-      .order('created_at', { ascending: false });
+    const current = ++requestId.current;
+    if (!campaignId || !userId) {
+      setAllowed(false); setUpdates([]); setError(''); setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const [campaign, result] = await Promise.all([
+      supabase.from('campaigns').select('id')
+        .eq('id', campaignId).eq('owner_id', userId).eq('status', 'approved').maybeSingle(),
+      supabase.from('campaign_updates').select('id,body,status,created_at')
+        .eq('campaign_id', campaignId).eq('author_id', userId)
+        .order('created_at', { ascending: false }),
+    ]);
+    if (current !== requestId.current) return;
+    setAllowed(!!campaign.data && !campaign.error);
     setUpdates((result.data || []) as Update[]);
-  }, [campaignId, session]);
-  useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
+    setError(campaign.error?.message || result.error?.message || '');
+    setLoading(false);
+  }, [campaignId, userId]);
+  useFocusEffect(useCallback(() => { void refresh(); return () => { requestId.current += 1; }; }, [refresh]));
   async function submit() {
     if (!session || !campaignId || !allowed) return;
     if (text.trim().length < 30) return Alert.alert('More detail needed', 'Write at least 30 characters.');
@@ -41,7 +55,9 @@ export default function Updates() {
   return <Screen>
     <Pressable onPress={() => router.back()}><Txt muted>‹ My campaigns</Txt></Pressable>
     <Txt size={27} weight="700">Campaign updates</Txt>
-    {allowed ? <>
+    {loading && <Txt muted>Checking your campaign…</Txt>}
+    {!!error && <Card><Txt size={13}>{error}</Txt><Button label="Try again" outline onPress={() => { void refresh(); }} /></Card>}
+    {!loading && !error && allowed ? <>
       <Txt muted>Let supporters know how things are going. Updates are reviewed before publication.</Txt>
       <Field label="Write an update" value={text} onChangeText={setText} multiline placeholder="Share progress, news, or changes to your campaign." />
       <Button label={busy ? 'Submitting…' : 'Submit update'} disabled={busy} onPress={submit} />
@@ -51,6 +67,6 @@ export default function Updates() {
         <Txt>{item.body}</Txt>
       </Card>)}
       {!updates.length && <Txt muted>No updates yet.</Txt>}
-    </> : <Txt muted>Updates are available to organizers of approved campaigns.</Txt>}
+    </> : !loading && !error && <Txt muted>Updates are available to organizers of approved campaigns.</Txt>}
   </Screen>;
 }

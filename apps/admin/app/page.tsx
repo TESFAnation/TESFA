@@ -35,6 +35,12 @@ export default function Dashboard() {
   const [updates, setUpdates] = useState<Update[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [selected, setSelected] = useState<Campaign | null>(null);
+  const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
+  const [organizationHistory, setOrganizationHistory] = useState<ReviewEvent[]>([]);
+  const [organizationNotes, setOrganizationNotes] = useState('');
+  const [organizationReviewed, setOrganizationReviewed] = useState(false);
+  const [organizationFilter, setOrganizationFilter] = useState<'pending' | 'all' | 'needs_info' | 'approved' | 'rejected'>('pending');
+  const [organizationSearch, setOrganizationSearch] = useState('');
   const [search, setSearch] = useState('');
   const [campaignFilter, setCampaignFilter] = useState<CampaignFilter>('submitted');
   const [evidence, setEvidence] = useState<Evidence[]>([]);
@@ -124,6 +130,18 @@ export default function Dashboard() {
       setReviewHistory((history.data || []) as ReviewEvent[]);
     }
   }
+  async function openOrganization(item: Organization) {
+    setSelectedOrganization(item);
+    setOrganizationNotes('');
+    setOrganizationReviewed(false);
+    setOrganizationHistory([]);
+    setMessage('');
+    const { data, error } = await supabase.from('organization_review_events')
+      .select('id,decision,notes,created_at').eq('organization_id', item.id)
+      .order('created_at', { ascending: false });
+    if (error) setMessage('Could not load organization review history: ' + error.message);
+    else setOrganizationHistory((data || []) as ReviewEvent[]);
+  }
   async function openEvidence(doc: Evidence) {
     const { data, error } = await supabase.storage.from('tesfa-private-evidence').createSignedUrl(doc.storage_path, 60);
     if (error || !data?.signedUrl) { setMessage(error?.message || 'Could not open evidence file.'); return; }
@@ -136,7 +154,7 @@ export default function Dashboard() {
       setMessage('Complete the checks and confirm human review before approving.');
       return;
     }
-    if (status !== 'approved' && notes.trim().length < 8) {
+    if (notes.trim().length < 12) {
       setMessage('Give the applicant a clear explanation in the reviewer notes.');
       return;
     }
@@ -144,7 +162,7 @@ export default function Dashboard() {
     const { error } = await supabase.rpc('tesfa_review_campaign', {
       p_campaign_id: selected.id,
       p_decision: status,
-      p_notes: notes.trim() || 'Reviewer inspected the application and supporting evidence.',
+      p_notes: notes.trim(),
     });
     if (error) {
       setBusy(false);
@@ -154,11 +172,26 @@ export default function Dashboard() {
     setMessage('Campaign decision and audit record saved.');
     setBusy(false); setSelected(null); await refresh();
   }
-  async function reviewOrganization(id: string, status: 'approved' | 'rejected') {
-    setBusy(true);
-    const result = await supabase.from('organizations').update({ status }).eq('id', id).in('status', ['pending', 'needs_info']);
+  async function reviewOrganization(status: 'approved' | 'needs_info' | 'rejected') {
+    if (!selectedOrganization) return;
+    if (!organizationReviewed) {
+      setMessage('Confirm that you inspected the organization application before recording a decision.');
+      return;
+    }
+    if (organizationNotes.trim().length < 12 || organizationNotes.trim().length > 2000) {
+      setMessage('Write 12 to 2000 characters of feedback that the applicant can read.');
+      return;
+    }
+    setBusy(true); setMessage('');
+    const { error } = await supabase.rpc('tesfa_review_organization', {
+      p_organization_id: selectedOrganization.id,
+      p_decision: status,
+      p_notes: organizationNotes.trim(),
+    });
     setBusy(false);
-    setMessage(result.error?.message || 'Organization status saved.');
+    if (error) { setMessage(error.message); return; }
+    setMessage('Organization decision and applicant feedback recorded together.');
+    setSelectedOrganization(null);
     await refresh();
   }
   async function reviewUpdate(id: string, status: 'approved' | 'rejected') {
@@ -188,6 +221,10 @@ export default function Dashboard() {
     .sort((a, b) => campaignFilter === 'submitted'
       ? a.created_at.localeCompare(b.created_at) : b.created_at.localeCompare(a.created_at)),
     [campaigns, campaignFilter, search]);
+  const displayedOrganizations = useMemo(() => organizations
+    .filter((item) => (organizationFilter === 'all' || item.status === organizationFilter) &&
+      [item.name, item.registration_reference].join(' ').toLowerCase().includes(organizationSearch.trim().toLowerCase())),
+    [organizations, organizationFilter, organizationSearch]);
 
   if (!ready || checking) return <main className="sign-in card"><div className="brand">TESFA</div><p className="muted">Checking your account…</p></main>;
   if (!user) return <main className="sign-in card">
@@ -214,10 +251,10 @@ export default function Dashboard() {
     <aside className="sidebar">
       <div><div className="brand">TESFA</div><div className="small">REVIEW DASHBOARD</div></div>
       <nav aria-label="Admin navigation">
-        <button className={'nav-item ' + (section === 'campaigns' ? 'active' : '')} onClick={() => { setSection('campaigns'); setSelected(null); }}><ClipboardCheck size={18} /> Campaigns</button>
-        <button className={'nav-item ' + (section === 'organizations' ? 'active' : '')} onClick={() => { setSection('organizations'); setSelected(null); }}><Building2 size={18} /> Organizations</button>
-        <button className={'nav-item ' + (section === 'updates' ? 'active' : '')} onClick={() => { setSection('updates'); setSelected(null); }}><FileText size={18} /> Updates</button>
-        <button className={'nav-item ' + (section === 'reports' ? 'active' : '')} onClick={() => { setSection('reports'); setSelected(null); }}><Flag size={18} /> Reports {reports.filter((item) => item.status === 'pending').length > 0 ? '(' + reports.filter((item) => item.status === 'pending').length + ')' : ''}</button>
+        <button className={'nav-item ' + (section === 'campaigns' ? 'active' : '')} onClick={() => { setSection('campaigns'); setSelected(null); setSelectedOrganization(null); }}><ClipboardCheck size={18} /> Campaigns</button>
+        <button className={'nav-item ' + (section === 'organizations' ? 'active' : '')} onClick={() => { setSection('organizations'); setSelected(null); setSelectedOrganization(null); }}><Building2 size={18} /> Organizations {organizations.filter((item) => item.status === 'pending').length > 0 ? '(' + organizations.filter((item) => item.status === 'pending').length + ')' : ''}</button>
+        <button className={'nav-item ' + (section === 'updates' ? 'active' : '')} onClick={() => { setSection('updates'); setSelected(null); setSelectedOrganization(null); }}><FileText size={18} /> Updates</button>
+        <button className={'nav-item ' + (section === 'reports' ? 'active' : '')} onClick={() => { setSection('reports'); setSelected(null); setSelectedOrganization(null); }}><Flag size={18} /> Reports {reports.filter((item) => item.status === 'pending').length > 0 ? '(' + reports.filter((item) => item.status === 'pending').length + ')' : ''}</button>
       </nav>
       <div style={{ marginTop: 'auto', display: 'grid', gap: 9 }}>
         <span className="small">{user.email}</span>
@@ -298,26 +335,73 @@ export default function Dashboard() {
             <div className="check">{photos.length ? '✓' : '✕'} Campaign photo uploaded</div>
             <div className="check">{evidence.length ? '✓' : '✕'} Supporting evidence uploaded</div>
             <label className="check"><input type="checkbox" checked={reviewed} onChange={(e) => setReviewed(e.target.checked)} /> I opened the evidence and inspected the application. I understand this does not establish document authenticity.</label>
-            <div className="field"><label htmlFor="review-notes">Reviewer notes</label><textarea id="review-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Reason for your decision" /></div>
+            <div className="field"><label htmlFor="review-notes">Feedback for organizer</label><textarea id="review-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Explain your decision clearly. Minimum 12 characters." maxLength={2000} />
+              <span className="small">The organizer can read this text. Never enter private ID numbers or internal investigation details.</span></div>
             {selected.status === 'submitted' ? <div className="actions">
-              <button className="btn" disabled={busy || !reviewed || !completeChecks} onClick={() => reviewCampaign('approved')}>Approve</button>
+              <button className="btn" disabled={busy || !reviewed || !completeChecks || notes.trim().length < 12} onClick={() => reviewCampaign('approved')}>Approve</button>
               <button className="btn secondary" disabled={busy} onClick={() => reviewCampaign('needs_info')}>More evidence</button>
               <button className="btn warn" disabled={busy} onClick={() => reviewCampaign('rejected')}>Reject</button>
             </div> : <p className="small">Only submitted applications can receive a new review decision.</p>}
           </section>
         </div>}
       </>}
-      {section === 'organizations' && <div className="card"><h2>Organization applications</h2>
-        <div style={{ overflowX: 'auto' }}><table className="table"><thead><tr><th>Organization</th><th>Status</th><th>Review</th></tr></thead><tbody>
-          {organizations.map((item) => <tr key={item.id}>
-            <td><strong>{item.name}</strong><div className="small">{item.registration_reference}</div><div className="small">{item.note}</div></td>
-            <td><span className="status">{item.status}</span></td>
-            <td>{['pending','needs_info'].includes(item.status) ? <div className="actions"><button className="btn secondary" disabled={busy} onClick={() => reviewOrganization(item.id, 'approved')}>Approve</button><button className="btn secondary" disabled={busy} onClick={() => reviewOrganization(item.id, 'rejected')}>Reject</button></div> : <span className="small">Decision recorded</span>}</td>
-          </tr>)}
-          {!organizations.length && <tr><td colSpan={3} className="empty">No organization applications.</td></tr>}
-        </tbody></table></div>
-        <p className="small">Organization approval is only a prototype status. Real registration certificates have not been authenticated.</p>
-      </div>}
+      {section === 'organizations' && <>
+        <div className="cards">
+          <div className="card"><div className="small">Awaiting review</div><div className="count">{organizations.filter((item) => item.status === 'pending').length}</div></div>
+          <div className="card"><div className="small">Needs information</div><div className="count">{organizations.filter((item) => item.status === 'needs_info').length}</div></div>
+          <div className="card"><div className="small">Approved</div><div className="count">{organizations.filter((item) => item.status === 'approved').length}</div></div>
+        </div>
+        <div className="card">
+          <div className="topline" style={{ flexWrap: 'wrap', marginBottom: 19 }}>
+            <div><h2 style={{ marginBottom: 4 }}>Organization applications</h2><span className="small">{displayedOrganizations.length} matching records</span></div>
+            <div className="review-filters">
+              <input type="search" aria-label="Search organizations" placeholder="Search organizations" value={organizationSearch} onChange={(e) => setOrganizationSearch(e.target.value)} />
+              <select aria-label="Filter organizations by status" value={organizationFilter} onChange={(e) => setOrganizationFilter(e.target.value as typeof organizationFilter)}>
+                <option value="pending">Awaiting review</option><option value="all">All statuses</option>
+                <option value="needs_info">Needs information</option><option value="approved">Approved</option><option value="rejected">Rejected</option>
+              </select>
+            </div>
+          </div>
+          <div style={{ overflowX: 'auto' }}><table className="table"><thead><tr><th>Organization</th><th className="hide-small">Registration</th><th>Status</th><th>Review</th></tr></thead><tbody>
+            {displayedOrganizations.map((item) => <tr key={item.id}>
+              <td><strong>{item.name}</strong><div className="small">{date(item.created_at)}</div></td>
+              <td className="hide-small">{item.registration_reference}</td>
+              <td><span className="status">{item.status.replace('_', ' ')}</span></td>
+              <td><button className="link" onClick={() => openOrganization(item)}>Open</button></td>
+            </tr>)}
+            {!displayedOrganizations.length && <tr><td colSpan={4} className="empty">No organizations match these filters.</td></tr>}
+          </tbody></table></div>
+        </div>
+        {selectedOrganization && <div className="review">
+          <section className="card">
+            <div className="topline"><h2>{selectedOrganization.name}</h2><button className="btn secondary" onClick={() => setSelectedOrganization(null)}>Close</button></div>
+            <p className="small">{date(selectedOrganization.created_at)} · {selectedOrganization.status.replace('_', ' ')}</p>
+            <h3>Registration reference</h3><p>{selectedOrganization.registration_reference}</p>
+            <h3>About the organization</h3><p style={{ whiteSpace: 'pre-wrap', marginTop: 10 }}>{selectedOrganization.note}</p>
+            <h3>Previous decisions</h3>
+            {organizationHistory.length ? organizationHistory.map((entry) => <div className="history-item" key={entry.id}>
+              <strong>{entry.decision.replace('_', ' ')}</strong><span className="small">{date(entry.created_at)}</span>
+              <p style={{ whiteSpace: 'pre-wrap', marginTop: 8 }}>{entry.notes || 'No explanation provided'}</p>
+            </div>) : <p className="muted">No previous staff decisions.</p>}
+          </section>
+          <section className="card">
+            <h2>Organization review</h2>
+            <p className="small">Read the details and confirm your inspection. These checks do not authenticate government records.</p>
+            <label className="check"><input type="checkbox" checked={organizationReviewed} onChange={(e) => setOrganizationReviewed(e.target.checked)} /> I reviewed the organization application and understand this is a prototype decision.</label>
+            <div className="field"><label htmlFor="organization-review-notes">Feedback for applicant</label>
+              <textarea id="organization-review-notes" value={organizationNotes} onChange={(e) => setOrganizationNotes(e.target.value)}
+                placeholder="Tell the applicant why you made this decision or what to correct." minLength={12} maxLength={2000} />
+              <span className="small">Visible to the applicant. Do not include internal notes, sensitive documents or personal ID numbers.</span>
+            </div>
+            {selectedOrganization.status === 'pending' ? <div className="actions">
+              <button className="btn" disabled={busy || !organizationReviewed || organizationNotes.trim().length < 12} onClick={() => reviewOrganization('approved')}>Approve</button>
+              <button className="btn secondary" disabled={busy || !organizationReviewed || organizationNotes.trim().length < 12} onClick={() => reviewOrganization('needs_info')}>Request changes</button>
+              <button className="btn warn" disabled={busy || !organizationReviewed || organizationNotes.trim().length < 12} onClick={() => reviewOrganization('rejected')}>Reject</button>
+            </div> : <p className="small">This application is not currently awaiting review.</p>}
+          </section>
+        </div>}
+        <p className="small">An organization is eligible to submit campaigns only after staff approval. Authenticity verification and licensing are outside this prototype.</p>
+      </>}
       {section === 'updates' && <div className="card"><h2>Organizer updates</h2>
         <div style={{ overflowX: 'auto' }}><table className="table"><thead><tr><th>Update text</th><th>Status</th><th>Review</th></tr></thead><tbody>
           {updates.map((item) => <tr key={item.id}>

@@ -8,6 +8,7 @@ import { useAppearance } from '../lib/theme';
 import { useAuth } from '../lib/auth';
 import { money, titleCase } from '../lib/campaigns';
 import { supabase } from '../lib/supabase';
+import { latestCampaignFeedback, type ReviewFeedback } from '../lib/review-feedback';
 
 type Mine = { id: string; title: string; category: string; goal_etb: number; status: string; created_at: string };
 const labels: Record<string, string> = {
@@ -19,6 +20,7 @@ export default function MyCampaignsWeb() {
   const { session } = useAuth();
   const { colors } = useAppearance();
   const [items, setItems] = useState<Mine[]>([]);
+  const [feedback, setFeedback] = useState<Record<string, ReviewFeedback>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const refresh = useCallback(async () => {
@@ -27,8 +29,10 @@ export default function MyCampaignsWeb() {
     const result = await supabase.from('campaigns')
       .select('id,title,category,goal_etb,status,created_at')
       .eq('owner_id', session.user.id).order('created_at', { ascending: false });
+    const rows = (result.data || []) as Mine[];
     setError(result.error?.message || '');
-    setItems((result.data || []) as Mine[]);
+    setItems(rows);
+    setFeedback(await latestCampaignFeedback(rows.map((row) => row.id)));
     setLoading(false);
   }, [session]);
   useFocusEffect(useCallback(() => { void refresh(); }, [refresh]));
@@ -71,6 +75,10 @@ export default function MyCampaignsWeb() {
           <View style={{ flex: 1, minWidth: 220, gap: 6 }}>
             <Txt size={17} weight="700">{item.title}</Txt>
             <Txt muted size={13}>{titleCase(item.category)} · {money(Number(item.goal_etb))} · {new Date(item.created_at).toLocaleDateString('en-GB')}</Txt>
+            {!!feedback[item.id]?.notes && <View style={{ backgroundColor: colors.soft, borderRadius: 6, padding: 12, gap: 5, marginTop: 8 }}>
+              <Txt size={12} weight="700" style={{ color: colors.navy }}>Reviewer feedback</Txt>
+              <Txt size={13}>{feedback[item.id].notes}</Txt>
+            </View>}
           </View>
           <View style={{ backgroundColor: colors.soft, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 5 }}>
             <Txt size={12} weight="700" style={{ color: colors.navy }}>{labels[item.status] || item.status}</Txt>

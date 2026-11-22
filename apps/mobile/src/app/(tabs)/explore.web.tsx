@@ -6,6 +6,7 @@ import { Txt } from '../../components/primitives';
 import { CampaignGrid, SectionHeading, WebAction, WebPage, WebSearch } from '../../components/web-layout';
 import { useCampaigns, titleCase } from '../../lib/campaigns';
 import { useAppearance } from '../../lib/theme';
+import { campaignCategoryFromParam } from '../../lib/design';
 
 const filters = ['all', 'medical', 'education', 'emergency'] as const;
 type Filter = (typeof filters)[number];
@@ -16,10 +17,9 @@ export default function WebExplore() {
   const { width } = useWindowDimensions();
   const params = useLocalSearchParams<{ category?: string }>();
   const { live, loading, error, refresh } = useCampaigns();
-  const [selected, setSelected] = useState<Filter | null>(null);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<Sort>('newest');
-  const category: Filter = selected || (filters.includes(params.category as Filter) ? params.category as Filter : 'all');
+  const category: Filter = campaignCategoryFromParam(params.category);
   const desktop = width >= 940;
   const contentWidth = Math.min(width, 1240) - (width < 600 ? 40 : 64);
   const resultsWidth = desktop ? contentWidth - 268 - 30 : contentWidth;
@@ -29,7 +29,8 @@ export default function WebExplore() {
     .sort((a, b) => sort === 'goal' ? a.goal_etb - b.goal_etb : (b.created_at || '').localeCompare(a.created_at || ''));
 
   const filterList = <View style={{ gap: 5 }}>
-    {filters.map((filter) => <Pressable key={filter} accessibilityRole="button" onPress={() => setSelected(filter)}
+    {filters.map((filter) => <Pressable key={filter} accessibilityRole="button" accessibilityState={{ selected: category === filter }}
+      onPress={() => router.setParams({ category: filter })}
       style={{ backgroundColor: category === filter ? colors.soft : 'transparent', borderRadius: 6, paddingVertical: 11,
         paddingHorizontal: 13, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
       <Txt size={14} weight={category === filter ? '700' : '500'} style={{ color: category === filter ? colors.navy : colors.text }}>
@@ -70,7 +71,8 @@ export default function WebExplore() {
           </Pressable>
         </View>
         {!desktop && <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-          {filters.map((filter) => <Pressable key={filter} onPress={() => setSelected(filter)}
+          {filters.map((filter) => <Pressable key={filter} accessibilityRole="button" accessibilityState={{ selected: category === filter }}
+            onPress={() => router.setParams({ category: filter })}
             style={{ paddingHorizontal: 14, paddingVertical: 10, backgroundColor: category === filter ? colors.navy : colors.surface,
               borderWidth: 1, borderColor: colors.line, borderRadius: 6 }}>
             <Txt size={13} weight="600" style={{ color: category === filter ? (colors.navy === '#173B63' ? '#FFFFFF' : '#101821') : colors.text }}>

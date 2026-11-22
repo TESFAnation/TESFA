@@ -8,6 +8,7 @@ import { useAppearance, type ThemeChoice } from '../../lib/theme';
 import { useAuth } from '../../lib/auth';
 import { useOrganizations } from '../../lib/organization';
 import { supabase } from '../../lib/supabase';
+import { AccountDetails } from '../../components/account-details';
 
 const options: { label: string; path: '/drafts' | '/saved' | '/organization'; Icon: typeof Bookmark; description: string }[] = [
   { label: 'My campaigns', path: '/drafts', Icon: FilePenLine, description: 'Manage drafts, applications and published campaigns.' },
@@ -75,6 +76,10 @@ export default function WebProfile() {
                 <Txt size={13} muted>{description}</Txt></View>
               <Txt size={21} muted>›</Txt>
             </Pressable>)}
+          </View>
+          <View style={{ padding: 26, backgroundColor: colors.surface, borderWidth: 1,
+            borderColor: colors.line, borderRadius: 9 }}>
+            <AccountDetails key={session.user.id} />
           </View>
         </View>
         <View style={{ flex: 1, gap: 22 }}>

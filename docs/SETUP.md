@@ -56,6 +56,8 @@ This action must be performed through the trusted Supabase dashboard by the proj
 
 ## First end-to-end review
 
+**TESFA v1.2:** The organization correction flow, applicant review feedback and atomic organization review depend on `supabase/migrations/20261121200637_organization_review_and_applicant_feedback.sql`. It was applied to the connected project on November 21, 2026. Read [the joint release checklist](NEXT_RELEASE_CHECKLIST.md) to verify the app versions and workflow.
+
 1. Confirm the Supabase redirects listed above are set, and confirm your email address.
 2. As an organizer, open **Organization registration** and submit a real organization name and reference. For testing, use fictional, non-sensitive references.
 3. As staff, sign into the admin dashboard and review the registration using an independent check before approving it.

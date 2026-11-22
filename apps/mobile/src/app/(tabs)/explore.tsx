@@ -1,19 +1,22 @@
 import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Search, SlidersHorizontal } from 'lucide-react-native';
 import { CampaignCard } from '../../components/campaign-card';
 import { Card, Field, Screen, Txt } from '../../components/primitives';
 import { useCampaigns } from '../../lib/campaigns';
 import { useAppearance } from '../../lib/theme';
+import { campaignCategoryFromParam, design } from '../../lib/design';
 
 const filters = ['all', 'medical', 'education', 'emergency'] as const;
 type Sort = 'newest' | 'goal';
 export default function Explore() {
   const { colors } = useAppearance();
+  const params = useLocalSearchParams<{ category?: string }>();
   const { live, loading, error, refresh } = useCampaigns();
-  const [category, setCategory] = useState<(typeof filters)[number]>('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<Sort>('newest');
+  const category = campaignCategoryFromParam(params.category);
   const matching = live.filter((item) =>
     (category === 'all' || item.category === category) &&
     [item.title, item.location, item.story, item.organizer_name || ''].join(' ').toLowerCase().includes(search.trim().toLowerCase())
@@ -22,8 +25,9 @@ export default function Explore() {
     <View style={{ gap: 3 }}><Txt size={27} weight="700">Explore causes</Txt><Txt muted>Find a story you care about.</Txt></View>
     <Field label="Search campaigns" value={search} onChangeText={setSearch} placeholder="Cause, city, organizer" />
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-      {filters.map((option) => <Pressable key={option} accessibilityRole="button" onPress={() => setCategory(option)}
-        style={{ paddingHorizontal: 15, paddingVertical: 10, backgroundColor: option === category ? '#173B63' : colors.surface, borderColor: colors.line, borderWidth: 1, borderRadius: 10 }}>
+      {filters.map((option) => <Pressable key={option} accessibilityRole="button"
+        accessibilityState={{ selected: option === category }} onPress={() => router.setParams({ category: option })}
+        style={{ paddingHorizontal: 15, paddingVertical: 10, backgroundColor: option === category ? design.brand : colors.surface, borderColor: colors.line, borderWidth: 1, borderRadius: design.radius.control }}>
         <Txt size={13} weight="600" style={{ color: option === category ? '#FFFFFF' : colors.text }}>{option === 'all' ? 'All causes' : option.charAt(0).toUpperCase() + option.slice(1)}</Txt>
       </Pressable>)}
     </View>

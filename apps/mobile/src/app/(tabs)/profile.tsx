@@ -7,6 +7,7 @@ import { useAppearance, type ThemeChoice } from '../../lib/theme';
 import { useAuth } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import { useOrganizations } from '../../lib/organization';
+import { AccountDetails } from '../../components/account-details';
 
 export default function Profile() {
   const { choice, setChoice, colors } = useAppearance();
@@ -34,6 +35,7 @@ export default function Profile() {
         <Button label="Explore campaigns" onPress={() => router.push('/explore')} outline />
       </>}
     </Card>
+    {session && <Card><AccountDetails key={session.user.id} /></Card>}
     <Card>
       <Pressable style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }} onPress={() => router.push('/saved')}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}><Bookmark color={colors.navy} size={18} /><Txt weight="600">Saved causes</Txt></View><ChevronRight color={colors.navy} size={20} />

@@ -31,8 +31,10 @@ The Supabase project is `TESFA Project` (`hfvqzzhcjkkjacivwddy`). Both apps use 
 - Responsive desktop campaign details, account dashboard, saved causes, organizer workspace and payment preview.
 - Email accounts, confirmation links, password resets, and persistent sign-in. Phone identity verification is not enabled.
 - Organization registration with status tracking; private campaign drafts, user-uploaded photos and private evidence.
+- Organization correction and applicant-facing review feedback, pending the next database migration.
+- Personal display-name editing for signed-in accounts.
 - Staff-only dashboard for reviewing organizations, campaign documents, photos, updates and reports.
-- Staff campaign search, status filters, review history, and atomic decision/audit logging.
+- Staff campaign and organization search, status filters, review history, and atomic decision/audit logging.
 - Light, dark and automatic appearance modes.
 
 ## What to test
@@ -47,4 +49,6 @@ The Supabase project is `TESFA Project` (`hfvqzzhcjkkjacivwddy`). Both apps use 
 8. Save an approved cause, report a concern, and submit an organizer update for staff review.
 
 See [the setup guide](docs/SETUP.md) for account and reviewer setup.
+
+The organization-feedback migration is installed on TESFA Project. Review [the release checklist](docs/NEXT_RELEASE_CHECKLIST.md) to verify the website, admin dashboard and Android build against the same v1.2 code. Run `node scripts/check-contracts.mjs` to check the source contracts without connecting to the database.
 

@@ -1,11 +1,18 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
-import { ArrowRight, BadgeCheck, ClipboardCheck, HeartHandshake, ShieldCheck } from 'lucide-react-native';
+import { ArrowRight, BadgeCheck, BookOpen, ClipboardCheck, HeartPulse, HousePlus, ShieldCheck, UserRound } from 'lucide-react-native';
 import { CampaignCard } from '../../components/campaign-card';
 import { Button, Card, Screen, Txt } from '../../components/primitives';
 import { useCampaigns } from '../../lib/campaigns';
 import { useAppearance } from '../../lib/theme';
+import { design, type CampaignCategory } from '../../lib/design';
+
+const categories: { id: CampaignCategory; title: string; Icon: typeof HeartPulse }[] = [
+  { id: 'medical', title: 'Medical', Icon: HeartPulse },
+  { id: 'education', title: 'Education', Icon: BookOpen },
+  { id: 'emergency', title: 'Emergency', Icon: HousePlus },
+];
 
 export default function Home() {
   const { colors } = useAppearance();
@@ -13,18 +20,32 @@ export default function Home() {
   return <Screen>
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
       <Txt size={31} weight="800" style={{ letterSpacing: 2, color: colors.navy }}>TESFA</Txt>
-      <Pressable onPress={() => router.push('/profile')} accessibilityLabel="Your profile" style={{ width: 39, height: 39, borderRadius: 20, backgroundColor: colors.soft, justifyContent: 'center', alignItems: 'center' }}>
-        <HeartHandshake size={20} color={colors.navy} />
+      <Pressable onPress={() => router.push('/profile')} accessibilityRole="button" accessibilityLabel="Your account" style={{ width: 42, height: 42, borderRadius: design.radius.control, backgroundColor: colors.soft, justifyContent: 'center', alignItems: 'center' }}>
+        <UserRound size={20} color={colors.navy} />
       </Pressable>
     </View>
-    <Card style={{ backgroundColor: colors.navy === '#173B63' ? '#173B63' : '#203A53', borderWidth: 0, padding: 23, gap: 14, borderRadius: 20 }}>
+    <Card style={{ backgroundColor: colors.navy === design.brand ? design.brand : '#203A53', borderWidth: 0, padding: 24, gap: 14, borderRadius: design.radius.card }}>
       <Txt size={12} weight="700" style={{ color: '#C7DCEC', letterSpacing: 1.6 }}>HOPE IN ACTION</Txt>
       <Txt size={29} weight="700" style={{ color: '#FFFFFF', lineHeight: 36 }}>A little help can change everything.</Txt>
       <Txt size={14} style={{ color: '#E0EBF3' }}>Discover causes across Ethiopia, or start a campaign that matters to your community.</Txt>
-      <Pressable onPress={() => router.push('/explore')} style={{ backgroundColor: '#FFFFFF', borderRadius: 10, paddingVertical: 13, paddingHorizontal: 15, alignSelf: 'flex-start', flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-        <Txt size={14} weight="700" style={{ color: '#173B63' }}>Explore campaigns</Txt><ArrowRight color="#173B63" size={17} />
+      <Pressable accessibilityRole="button" onPress={() => router.push('/explore')} style={{ backgroundColor: '#FFFFFF', borderRadius: design.radius.control, paddingVertical: 13, paddingHorizontal: 15, alignSelf: 'flex-start', flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+        <Txt size={14} weight="700" style={{ color: design.brand }}>Explore campaigns</Txt><ArrowRight color={design.brand} size={17} />
       </Pressable>
     </Card>
+    <View style={{ gap: 10, paddingTop: 7 }}>
+      <Txt size={18} weight="700">Browse by need</Txt>
+      <View style={{ flexDirection: 'row', gap: 9 }}>
+        {categories.map(({ id, title, Icon }) => <Pressable key={id}
+          accessibilityRole="button" accessibilityLabel={'Explore ' + title.toLowerCase() + ' campaigns'}
+          onPress={() => router.push({ pathname: '/explore', params: { category: id } })}
+          style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 17,
+            paddingHorizontal: 6, backgroundColor: colors.surface, borderWidth: 1,
+            borderColor: colors.line, borderRadius: design.radius.card }}>
+          <Icon size={24} color={colors.navy} strokeWidth={1.7} />
+          <Txt size={12} weight="700" style={{ textAlign: 'center' }}>{title}</Txt>
+        </Pressable>)}
+      </View>
+    </View>
     <View style={{ flexDirection: 'row', gap: 10 }}>
       <Card style={{ flex: 1, padding: 14, gap: 6 }}><BadgeCheck size={21} color={colors.navy} /><Txt size={13} weight="700">Reviewed before listing</Txt></Card>
       <Card style={{ flex: 1, padding: 14, gap: 6 }}><ClipboardCheck size={21} color={colors.navy} /><Txt size={13} weight="700">Evidence required</Txt></Card>

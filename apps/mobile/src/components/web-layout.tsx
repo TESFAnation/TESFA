@@ -1,19 +1,20 @@
 import React from 'react';
 import { Image, Pressable, ScrollView, TextInput, useWindowDimensions, View } from 'react-native';
 import { router, usePathname } from 'expo-router';
-import { ArrowUpRight, BookOpen, HeartPulse, HousePlus, MapPin, Menu, Moon, Search, Sun } from 'lucide-react-native';
+import { ArrowUpRight, BookOpen, HeartPulse, HousePlus, MapPin, Moon, Search, Sun } from 'lucide-react-native';
 import { Txt } from './primitives';
 import { money, titleCase, type Campaign } from '../lib/campaigns';
 import { useAppearance } from '../lib/theme';
+import { design } from '../lib/design';
 
-export const WEB_WIDTH = 1240;
+export const WEB_WIDTH = design.width.content;
 const categories = { education: BookOpen, medical: HeartPulse, emergency: HousePlus };
 
 export function WebHeader() {
   const { colors, dark, setChoice } = useAppearance();
   const { width } = useWindowDimensions();
   const pathname = usePathname();
-  const compact = width < 920;
+  const compact = width < design.width.desktopNav;
   const items = [
     { label: 'Home', path: '/' },
     { label: 'Explore causes', path: '/explore' },
@@ -21,36 +22,39 @@ export function WebHeader() {
     { label: 'Start a campaign', path: '/create' },
   ] as const;
   return <View style={{ backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.line, zIndex: 2 }}>
-    <View style={{ width: '100%', maxWidth: WEB_WIDTH, paddingHorizontal: width < 600 ? 20 : 32, minHeight: compact ? 70 : 82,
+    <View style={{ width: '100%', maxWidth: WEB_WIDTH, paddingHorizontal: width < design.width.phone ? design.gutter.phone : design.gutter.desktop, minHeight: compact ? 70 : 82,
       alignSelf: 'center', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
       <Pressable accessibilityRole="link" onPress={() => router.push('/')} style={{ paddingVertical: 14, flexShrink: 0 }}>
         <Txt size={compact ? 26 : 30} weight="800" style={{ letterSpacing: 2.4, color: colors.navy }}>TESFA</Txt>
       </Pressable>
       {!compact && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 24, alignSelf: 'stretch' }}>
-        {items.map((item) => <Pressable key={item.path} accessibilityRole="link" onPress={() => router.push(item.path)}
-          style={{ borderBottomWidth: pathname === item.path ? 2 : 2, borderBottomColor: pathname === item.path ? colors.navy : 'transparent',
+        {items.map((item) => <Pressable key={item.path} accessibilityRole="link"
+          accessibilityState={{ selected: pathname === item.path || (item.path === '/explore' && pathname.startsWith('/campaign/')) }}
+          onPress={() => router.push(item.path)}
+          style={{ borderBottomWidth: 2, borderBottomColor: pathname === item.path || (item.path === '/explore' && pathname.startsWith('/campaign/')) ? colors.navy : 'transparent',
             paddingHorizontal: 2, justifyContent: 'center' }}>
           <Txt size={14} weight={pathname === item.path ? '700' : '500'} style={{ color: pathname === item.path ? colors.navy : colors.text }}>{item.label}</Txt>
         </Pressable>)}
       </View>}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: compact ? 8 : 18 }}>
-        {!compact && <Pressable accessibilityRole="link" onPress={() => router.push('/saved')}><Txt size={14} weight="500">Saved</Txt></Pressable>}
+        {!compact && <Pressable accessibilityRole="link" accessibilityState={{ selected: pathname === '/saved' }} onPress={() => router.push('/saved')}>
+          <Txt size={14} weight={pathname === '/saved' ? '700' : '500'} style={{ color: pathname === '/saved' ? colors.navy : colors.text }}>Saved</Txt>
+        </Pressable>}
         <Pressable accessibilityLabel={dark ? 'Switch to light mode' : 'Switch to dark mode'} accessibilityRole="button"
           onPress={() => setChoice(dark ? 'light' : 'dark')}
-          style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line, borderRadius: 8 }}>
+          style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line, borderRadius: design.radius.control }}>
           {dark ? <Sun color={colors.text} size={18} /> : <Moon color={colors.text} size={18} />}
         </Pressable>
-        <Pressable accessibilityRole="link" onPress={() => router.push(compact ? '/explore' : '/profile')}
-          style={{ borderWidth: 1, borderColor: colors.line, borderRadius: 8, paddingVertical: 10, paddingHorizontal: compact ? 12 : 18, flexDirection: 'row', gap: 7, alignItems: 'center' }}>
-          {compact && <Menu color={colors.text} size={19} />}
-          <Txt size={13} weight="700">{compact ? 'Explore' : 'My account'}</Txt>
+        <Pressable accessibilityRole="link" accessibilityState={{ selected: pathname === '/profile' }} onPress={() => router.push('/profile')}
+          style={{ borderWidth: 1, borderColor: colors.line, borderRadius: design.radius.control, paddingVertical: 11, paddingHorizontal: compact ? 13 : 18, alignItems: 'center' }}>
+          <Txt size={13} weight="700">{compact ? 'Account' : 'My account'}</Txt>
         </Pressable>
       </View>
     </View>
     {compact && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{
-      gap: 22, paddingHorizontal: width < 600 ? 20 : 32, paddingBottom: 12, alignItems: 'center' }}>
-      {[...items, { label: 'Saved', path: '/saved' }, { label: 'My account', path: '/profile' }].map((item) =>
-        <Pressable key={item.path} accessibilityRole="link" onPress={() => router.push(item.path)}>
+      gap: 22, paddingHorizontal: width < design.width.phone ? design.gutter.phone : design.gutter.desktop, paddingBottom: 12, alignItems: 'center' }}>
+      {[...items, { label: 'Saved', path: '/saved' }].map((item) =>
+        <Pressable key={item.path} accessibilityRole="link" accessibilityState={{ selected: pathname === item.path }} onPress={() => router.push(item.path)}>
           <Txt size={13} weight={pathname === item.path ? '700' : '500'}
             style={{ color: pathname === item.path ? colors.navy : colors.subtle }}>{item.label}</Txt>
         </Pressable>)}
@@ -62,7 +66,7 @@ export function WebPage({ children, footer = true }: { children: React.ReactNode
   const { colors } = useAppearance();
   const { width } = useWindowDimensions();
   return <ScrollView style={{ flex: 1, backgroundColor: colors.page }} contentContainerStyle={{ flexGrow: 1, alignItems: 'center' }}>
-    <View style={{ width: '100%', maxWidth: WEB_WIDTH, paddingHorizontal: width < 600 ? 20 : 32, flexGrow: 1 }}>{children}</View>
+    <View style={{ width: '100%', maxWidth: WEB_WIDTH, paddingHorizontal: width < design.width.phone ? design.gutter.phone : design.gutter.desktop, flexGrow: 1 }}>{children}</View>
     {footer && <WebFooter />}
   </ScrollView>;
 }
@@ -72,7 +76,7 @@ export function WebFooter() {
   const { width } = useWindowDimensions();
   return <View style={{ width: '100%', marginTop: 80, borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.surface }}>
     <View style={{ width: '100%', maxWidth: WEB_WIDTH, alignSelf: 'center',
-      paddingHorizontal: width < 600 ? 20 : 32, paddingTop: 34, paddingBottom: 38, gap: 15 }}>
+      paddingHorizontal: width < design.width.phone ? design.gutter.phone : design.gutter.desktop, paddingTop: 34, paddingBottom: 38, gap: 15 }}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 15 }}>
         <View style={{ gap: 8 }}>
           <Txt size={24} weight="800" style={{ color: colors.navy, letterSpacing: 2 }}>TESFA</Txt>
@@ -95,8 +99,8 @@ export function WebFooter() {
 export function WebAction({ label, onPress, secondary = false }: { label: string; onPress: () => void; secondary?: boolean }) {
   const { colors } = useAppearance();
   return <Pressable accessibilityRole="button" onPress={onPress} style={{
-    paddingHorizontal: 22, paddingVertical: 14, borderRadius: 7,
-    backgroundColor: secondary ? colors.surface : '#173B63',
+    paddingHorizontal: 22, paddingVertical: 14, borderRadius: design.radius.control,
+    backgroundColor: secondary ? colors.surface : design.brand,
     borderWidth: secondary ? 1 : 0, borderColor: colors.line,
   }}><Txt size={14} weight="700" style={{ color: secondary ? colors.text : '#FFFFFF' }}>{label}</Txt></Pressable>;
 }
@@ -124,7 +128,7 @@ export function WebCampaignCard({ campaign, width }: { campaign: Campaign; width
   const Icon = categories[campaign.category] || HeartPulse;
   const progress = Math.max(0, Math.min(100, campaign.raised_etb / Math.max(campaign.goal_etb, 1) * 100));
   return <Pressable accessibilityRole="link" onPress={() => router.push({ pathname: '/campaign/[id]', params: { id: campaign.id } })}
-    style={{ width, borderWidth: 1, borderColor: colors.line, borderRadius: 9,
+    style={{ width, borderWidth: 1, borderColor: colors.line, borderRadius: design.radius.card,
       backgroundColor: colors.surface, overflow: 'hidden', marginBottom: 2 }}>
     <View style={{ height: 220, backgroundColor: colors.soft, justifyContent: 'center', alignItems: 'center' }}>
       {campaign.photo_url
